@@ -80,6 +80,41 @@ class QueueSet {
     return !acked && request._originQueue ? request._originQueue.abandon(request) : Q();
   }
 
+  addQueue(queue) {
+    this.queues.push(queue);
+
+    let name = queue.getName();
+
+    const exists = this.queueTable[name];
+    if (exists) {
+      throw new Error(`Queue exists already: ${name}`);
+    }
+    this.queueTable[name] = queue;
+
+    this.options.weights[name] = 5;
+    this.startMap = this._createStartMap(this.options.weights);
+
+    queue.subscribe();
+
+    return this.getQueue(name);
+  }
+
+  deleteQueue(name) {
+    const queue = this.getQueue(name);
+
+    const index = this.queues.indexOf(queue);
+    if (index > -1) {
+      this.queues.splice(index, 1);
+    }
+
+    delete this.queueTable[name];
+
+    delete this.options.weights[name];
+    this.startMap = this._createStartMap(this.options.weights);
+
+    return queue.unsubscribe();
+  }
+
   getQueue(name) {
     const result = this.queueTable[name];
     if (!result) {

@@ -29,7 +29,7 @@ app.use(bodyParser.json({ limit: '2mb' , strict: false}));
 app.use('/status', require('./routes/status')(service));
 app.use('/config', require('./routes/config')(service));
 app.use('/requests', require('./routes/requests')(service));
-app.use('/queues', require('./routes/queues')(service));
+app.use('/queues', require('./routes/queues')(service, CrawlerFactory));
 app.use('/deadletters', require('./routes/deadletters')(service));
 
 // to keep AlwaysOn flooding logs with errors
