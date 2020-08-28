@@ -71,7 +71,8 @@ class GitHubProcessor {
         newRequest.policy = request.policy;
         requests.push(newRequest);
       }
-      request.queueRequests(requests, 'soon');
+      const sourceQueue = request._message.fields.routingKey.split('-')[1];
+      request.queueRequests(requests, sourceQueue);
     }
 
     // Process the rest of the request as a page.
@@ -99,6 +100,7 @@ class GitHubProcessor {
     }
     // Queue up the page elements.  Use the same policy as this request as the page itself is more of an implementation
     // detail and should not be part of the user model of traversal.
+    const sourceQueue = request._message.fields.routingKey.split('-')[1];
     document.elements.forEach(item => {
       if (elementType) {
         const elementQualifier = this.isRootType(elementType) ? 'urn:' : qualifier;
@@ -106,7 +108,7 @@ class GitHubProcessor {
         // review items are not "normal" and do not have a url property...
         // TODO consider queuing the reviews with their actual payload rather than as a url request.  consider effects on etags etc
         const url = elementType === 'review' ? `${item.pull_request_url}/reviews/${item.id}` : item.url;
-        request.queue(elementType, url, request.policy, newContext);
+        request.queue(elementType, url, request.policy, newContext, true, sourceQueue);
       } else {
         // TODO if there is no elementType on a collection then assume it is events. Need to fix this up and
         // formalize the model of collections where the request carries the payload.
@@ -115,7 +117,7 @@ class GitHubProcessor {
         const newRequest = new Request(item.type, `${baseUrl}/${item.id}`, newContext);
         newRequest.payload = { etag: 1, body: item };
         newRequest.policy = request.policy;
-        request.queueRequests(newRequest);
+        request.queueRequests(newRequest, sourceQueue);
       }
     });
     return document;
@@ -910,7 +912,8 @@ class GitHubProcessor {
     const newRequest = new Request(type, payload[name].url, newContext);
     newRequest.policy = policy || request.getNextPolicy(name);
     if (newRequest.policy) {
-      request.queueRequests(newRequest);
+      const sourceQueue = request._message.fields.routingKey.split('-')[1];
+      request.queueRequests(newRequest, sourceQueue);
     }
     return request.document;
   }
@@ -924,7 +927,8 @@ class GitHubProcessor {
     const newRequest = new Request(type, url, newContext);
     newRequest.policy = policy || request.getNextPolicy(name);
     if (newRequest.policy) {
-      request.queueRequests(newRequest);
+      const sourceQueue = request._message.fields.routingKey.split('-')[1];
+      request.queueRequests(newRequest, sourceQueue);
     }
     return request.document;
   }
@@ -950,7 +954,8 @@ class GitHubProcessor {
 
     request.linkResource(name, urn);
     const newPolicy = request.getNextPolicy(name);
-    request.queue(type, url, newPolicy, { qualifier: qualifier });
+    const sourceQueue = request._message.fields.routingKey.split('-')[1];
+    request.queue(type, url, newPolicy, { qualifier: qualifier }, true, sourceQueue);
   }
 
   _addCollection(request, name, type, url = null, urn = null) {
@@ -961,8 +966,8 @@ class GitHubProcessor {
     request.linkCollection(name, urn);
     const newPolicy = request.getNextPolicy(name);
     const newContext = { qualifier: request.document._metadata.links.self.href, elementType: type };
-    request.queue(name, url, newPolicy, newContext);
-  }
+    const sourceQueue = request._message.fields.routingKey.split('-')[1];
+    request.queue(name, url, newPolicy, newContext, true, sourceQueue);  }
 
   _addRoot(request, name, type, url = null, urn = null, queue = true) {
     let element = request.document[name];
@@ -987,7 +992,8 @@ class GitHubProcessor {
     request.linkResource(name, urn);
     const newPolicy = request.getNextPolicy(name);
     if (queue) {
-      request.queue(type, url, newPolicy);
+      const sourceQueue = request._message.fields.routingKey.split('-')[1];
+      request.queue(type, url, newPolicy, null, true, sourceQueue);
     }
   }
 
@@ -1016,8 +1022,8 @@ class GitHubProcessor {
     // request.linkCollection('knownPages', `${urn}:pages`);
     const context = { qualifier: qualifier, relation: { origin: request.type, qualifier: urn, type: type, guid: guid } };
     const newPolicy = request.getNextPolicy(name);
-    request.queue(name, url, newPolicy, context, false);
-  }
+    const sourceQueue = request._message.fields.routingKey.split('-')[1]
+    request.queue(name, url, newPolicy, context, false, sourceQueue);  }
 
   /**
    * Process a page resource for a relation.  Add links identifying this page as part of a

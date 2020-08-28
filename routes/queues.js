@@ -6,6 +6,7 @@ const express = require('express');
 const wrap = require('../middleware/promiseWrap');
 
 let crawlerService = null;
+let CrawlerFactory = null;
 const router = express.Router();
 
 router.put('/:name', auth.validate, wrap(function* (request, response) {
@@ -14,6 +15,24 @@ router.put('/:name', auth.validate, wrap(function* (request, response) {
     return response.sendStatus(404);
   }
   response.sendStatus(200);
+}));
+
+router.post('/', auth.validate, wrap(function* (request, response) {
+  const queue = CrawlerFactory.addAmqpQueueToCrawler(request.body, crawlerService);
+
+  if (!queue) {
+    return response.sendStatus(404);
+  }
+  response.sendStatus(201);
+}));
+
+router.delete('/', auth.validate, wrap(function* (request, response) {
+  const success = CrawlerFactory.deleteAmqpQueueFromCrawler(request.body, crawlerService);
+
+  if (!success) {
+    return response.sendStatus(404);
+  }
+  response.sendStatus(201);
 }));
 
 router.get('/:name/info', auth.validate, wrap(function* (request, response) {
@@ -28,8 +47,9 @@ router.get('/:name/info', auth.validate, wrap(function* (request, response) {
   response.json(info);
 }));
 
-function setup(service) {
+function setup(service, factory) {
   crawlerService = service;
+  CrawlerFactory = factory
   return router;
 }
 module.exports = setup;
