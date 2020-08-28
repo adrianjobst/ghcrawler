@@ -245,11 +245,11 @@ class GitHubProcessor {
     this._addRoot(request, 'author', 'user');
     this._addRoot(request, 'committer', 'user');
 
-    if (document.files) {
-      document.files.forEach(file => {
-        delete file.patch;
-      });
-    }
+    // if (document.files) {
+    //   document.files.forEach(file => {
+    //     delete file.patch;
+    //   });
+    // }
     return document;
   }
 
