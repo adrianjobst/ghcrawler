@@ -352,6 +352,9 @@ class GitHubProcessor {
     this._addRoot(request, 'repo', 'repo', document.repository_url, context.qualifier);
     this._addRoot(request, 'assignee', 'user');
     this._addRoot(request, 'closed_by', 'user');
+    if (document.events_url) {
+      this._addCollection(request, 'issue_events', 'issue_event', document.events_url);
+    }
     if (document.comments_url && document.comments) {
       this._addCollection(request, 'issue_comments', 'issue_comment', document.comments_url);
     }
@@ -375,6 +378,17 @@ class GitHubProcessor {
     request.addSelfLink();
     request.linkResource('issue', context.qualifier);
     request.linkSiblings(`${context.qualifier}:issue_comments`);
+
+    this._addRoot(request, 'user', 'user');
+    return document;
+  }
+
+  issue_event(request) {
+    const document = request.document;
+    const context = request.context;
+    request.addSelfLink();
+    request.linkResource('issue', context.qualifier);
+    request.linkSiblings(`${context.qualifier}:issue_events`);
 
     this._addRoot(request, 'user', 'user');
     return document;
@@ -836,7 +850,7 @@ class GitHubProcessor {
 
   isCollectionType(request) {
     const collections = new Set([
-      'collaborators', 'commit_comments', 'commits', 'contributors', 'events', 'issues', 'issue_comments', 'members', 'orgs', 'pull_request_commit_comments', 'pull_request_commits', 'repos', 'reviews', 'review_comments', 'subscribers', 'stargazers', 'statuses', 'teams'
+      'collaborators', 'commit_comments', 'commits', 'contributors', 'events', 'issues', 'issue_comments', 'issue_events', 'members', 'orgs', 'pull_request_commit_comments', 'pull_request_commits', 'repos', 'reviews', 'review_comments', 'subscribers', 'stargazers', 'statuses', 'teams'
     ]);
     return collections.has(request.type);
   }
